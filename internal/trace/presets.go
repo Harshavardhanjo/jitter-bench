@@ -16,8 +16,21 @@ type Preset struct {
 }
 
 // Presets returns the standard conditions, ordered from benign to hostile, with
-// drift last because it is the odd one out: it is benign on every axis except
-// the one that defeats a fixed buffer.
+// the two drift cases last because they are the odd ones out: benign on every
+// axis except sender clock error, which no buffer depth fixes.
+//
+// The drift presets use 2000ppm, which is far worse than real hardware. Consumer
+// clocks are more like 10 to 100ppm. The exaggeration is so the effect is visible
+// inside a one-minute trace instead of taking half an hour, and it is called out
+// here rather than buried because a reader could otherwise mistake it for a
+// realistic figure. The failure it produces is the same one, arriving sooner.
+//
+// The two directions fail differently, which is why both are present. A fast
+// sender delivers packets sooner than the receiver consumes them, so the buffer
+// fills and latency grows without bound while nothing ever underruns. A slow
+// sender is the opposite: the buffer drains, and once it is empty every
+// subsequent frame underruns. Depth only decides how long the slow case takes to
+// arrive.
 func Presets(seed int64, count int, period time.Duration) []Preset {
 	base := Params{
 		Seed:      seed,
@@ -81,11 +94,19 @@ func Presets(seed int64, count int, period time.Duration) []Preset {
 			}),
 		},
 		{
-			Name:        "drift",
-			Description: "1ms jitter, no loss, but the sender's clock runs 200ppm fast.",
+			Name:        "drift-fast",
+			Description: "clean path, but the sender's clock runs 2000ppm fast: the buffer fills and latency grows.",
 			Params: with(func(p *Params) {
 				p.JitterStdDev = time.Millisecond
-				p.ClockDriftPPM = 200
+				p.ClockDriftPPM = 2000
+			}),
+		},
+		{
+			Name:        "drift-slow",
+			Description: "clean path, but the sender's clock runs 2000ppm slow: the buffer drains and never recovers.",
+			Params: with(func(p *Params) {
+				p.JitterStdDev = time.Millisecond
+				p.ClockDriftPPM = -2000
 			}),
 		},
 	}

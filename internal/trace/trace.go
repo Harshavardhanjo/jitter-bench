@@ -30,9 +30,20 @@ type Packet struct {
 	// Seq is the sender's sequence number, starting at zero.
 	Seq int
 
-	// Sent is when the sender emitted the packet, relative to the start of the
-	// stream, measured on the receiver's clock. Sender clock drift shows up here
-	// as a gradual stretch or compression of the send cadence.
+	// Stamp is the packet's RTP timestamp: the sender's own nominal clock, which
+	// advances exactly one packetisation interval per packet by definition.
+	// Drift never appears here, because a drifting sender does not know it is
+	// drifting — it stamps every frame one interval after the last.
+	//
+	// This is the quantity RFC 3550's jitter estimator compares arrivals against,
+	// so the estimator sees drift as a constant offset per packet rather than as
+	// variation.
+	Stamp time.Duration
+
+	// Sent is when the sender actually emitted the packet, in receiver time.
+	// Sender clock drift shows up here as a gradual stretch or compression of the
+	// real send cadence, and it is the true capture instant, so end-to-end
+	// latency is measured from this rather than from Stamp.
 	Sent time.Duration
 
 	// Arrived is when the receiver observed the packet.
@@ -187,6 +198,7 @@ func Generate(p Params) (*Trace, error) {
 
 		out.Packets = append(out.Packets, Packet{
 			Seq:     seq,
+			Stamp:   time.Duration(seq) * p.Period,
 			Sent:    sent,
 			Arrived: sent + delay(rng, p),
 		})
@@ -195,6 +207,7 @@ func Generate(p Params) (*Trace, error) {
 			out.Duplicated++
 			out.Packets = append(out.Packets, Packet{
 				Seq:       seq,
+				Stamp:     time.Duration(seq) * p.Period,
 				Sent:      sent,
 				Arrived:   sent + delay(rng, p),
 				Duplicate: true,

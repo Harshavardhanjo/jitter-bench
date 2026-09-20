@@ -63,9 +63,10 @@ type Result struct {
 	// UnderrunRate is Underruns over Frames.
 	UnderrunRate float64 `json:"underrun_rate"`
 
-	// PlayoutDelay is how long each played frame waited between being sent and
-	// being heard, in nanoseconds. This is the latency half of the trade, and the
-	// number a conversation actually feels.
+	// PlayoutDelay is how long each played frame waited between being captured and
+	// being heard, in nanoseconds, measured from the sender's real emission
+	// instant rather than its RTP timestamp. This is the latency half of the trade
+	// and the number a conversation actually feels.
 	PlayoutDelay stats.Summary `json:"playout_delay_ns"`
 
 	// Occupancy is how many packets were held at each slot boundary.
@@ -111,7 +112,7 @@ func Run(tr *trace.Trace, p buffer.Policy) (*Result, error) {
 	for next < len(tr.Packets) && tr.Packets[next].Arrived <= playoutStart {
 		pkt := tr.Packets[next]
 		next++
-		p.Observe(pkt.Sent, pkt.Arrived)
+		p.Observe(pkt.Stamp, pkt.Arrived)
 
 		if _, dup := held[pkt.Seq]; dup {
 			res.DuplicatesDropped++
@@ -145,7 +146,7 @@ func Run(tr *trace.Trace, p buffer.Policy) (*Result, error) {
 		for next < len(tr.Packets) && tr.Packets[next].Arrived <= slot {
 			pkt := tr.Packets[next]
 			next++
-			p.Observe(pkt.Sent, pkt.Arrived)
+			p.Observe(pkt.Stamp, pkt.Arrived)
 
 			// Testing whether a copy is already held, rather than trusting the
 			// trace's duplicate flag, means a duplicate that overtakes its

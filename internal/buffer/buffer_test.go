@@ -211,3 +211,46 @@ func TestNames(t *testing.T) {
 		t.Errorf("Adaptive.Name = %q", got)
 	}
 }
+
+// The estimator is structurally blind to sender clock drift, and that is a
+// property of RFC 3550 rather than of this implementation.
+//
+// A drifting sender still stamps every frame exactly one interval after the last,
+// because it does not know its clock is wrong. So D is the same small constant on
+// every packet rather than a growing quantity, and J — an average of |D| —
+// converges to that constant and stops. The buffer therefore sits at its floor
+// while the real required depth grows without bound.
+//
+// This is why the drift conditions in the sweep are not fixed by adaptation: no
+// amount of tuning helps an estimator that cannot see the problem. Detecting
+// drift needs a different signal, such as buffer occupancy trending in one
+// direction over minutes.
+func TestEstimatorIsBlindToClockDrift(t *testing.T) {
+	cfg := DefaultAdaptiveConfig()
+	a, err := NewAdaptive(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const (
+		period = 20 * time.Millisecond
+		ppm    = 2000.0 // sender runs fast; exaggerated so the effect is quick
+	)
+
+	// Arrivals compress by the drift factor while RTP timestamps do not.
+	for i := 0; i < 3000; i++ {
+		stamp := time.Duration(i) * period
+		arrived := time.Duration(float64(i)*float64(period)/(1+ppm/1e6)) + 20*time.Millisecond
+		a.Observe(stamp, arrived)
+	}
+
+	// Drift of 2000ppm on a 20ms interval is 40us of offset per packet, so the
+	// estimate should settle near that and nowhere near the tens of milliseconds
+	// of real buffer the drift consumes over a minute.
+	if got := a.Jitter(); got > 100*time.Microsecond {
+		t.Errorf("Jitter = %v; expected it to settle near the 40us per-packet offset", got)
+	}
+	if got := a.Target(); got != cfg.Min {
+		t.Errorf("Target = %v, want the floor %v: the estimator should not have reacted at all", got, cfg.Min)
+	}
+}

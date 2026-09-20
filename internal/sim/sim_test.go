@@ -29,6 +29,15 @@ func mustFixed(t *testing.T, d time.Duration) buffer.Policy {
 func handTrace(count int, pkts []trace.Packet) *trace.Trace {
 	sorted := make([]trace.Packet, len(pkts))
 	copy(sorted, pkts)
+
+	// Fill in the RTP timestamp a real sender would have written, so the
+	// estimator sees the same thing it sees in production. Tests that only care
+	// about arrival timing need not restate it.
+	for i := range sorted {
+		if sorted[i].Stamp == 0 {
+			sorted[i].Stamp = time.Duration(sorted[i].Seq) * period
+		}
+	}
 	sort.SliceStable(sorted, func(i, j int) bool { return sorted[i].Arrived < sorted[j].Arrived })
 
 	return &trace.Trace{

@@ -24,9 +24,11 @@ import (
 // each frame boundary, so a policy may change its answer over time; the cost of
 // acting on a change is charged by the simulation, not here.
 type Policy interface {
-	// Observe records an arrival. sent and arrived are both on the receiver's
-	// timeline, relative to the start of the stream.
-	Observe(sent, arrived time.Duration)
+	// Observe records an arrival. stamp is the packet's RTP timestamp, on the
+	// sender's clock; arrived is receiver time. RFC 3550 compares exactly these
+	// two, which is what makes a drifting sender show up as a constant offset
+	// rather than as jitter.
+	Observe(stamp, arrived time.Duration)
 
 	// Target reports the delay the receiver should currently hold.
 	Target() time.Duration
@@ -53,9 +55,9 @@ func NewFixed(delay time.Duration) (*Fixed, error) {
 	return &Fixed{delay: delay}, nil
 }
 
-func (f *Fixed) Observe(sent, arrived time.Duration) {}
-func (f *Fixed) Target() time.Duration               { return f.delay }
-func (f *Fixed) Name() string                        { return fmt.Sprintf("fixed-%v", f.delay) }
+func (f *Fixed) Observe(stamp, arrived time.Duration) {}
+func (f *Fixed) Target() time.Duration                { return f.delay }
+func (f *Fixed) Name() string                         { return fmt.Sprintf("fixed-%v", f.delay) }
 
 // AdaptiveConfig configures an Adaptive policy.
 type AdaptiveConfig struct {
@@ -113,7 +115,7 @@ type Adaptive struct {
 	target time.Duration
 
 	havePrev    bool
-	prevSent    time.Duration
+	prevStamp   time.Duration
 	prevArrived time.Duration
 
 	// shrinkVotes counts consecutive arrivals whose estimate would allow a
@@ -139,20 +141,20 @@ func NewAdaptive(cfg AdaptiveConfig) (*Adaptive, error) {
 }
 
 // Observe updates the jitter estimate from one arrival.
-func (a *Adaptive) Observe(sent, arrived time.Duration) {
+func (a *Adaptive) Observe(stamp, arrived time.Duration) {
 	if !a.havePrev {
 		a.havePrev = true
-		a.prevSent, a.prevArrived = sent, arrived
+		a.prevStamp, a.prevArrived = stamp, arrived
 		return
 	}
 
-	d := float64((arrived - a.prevArrived) - (sent - a.prevSent))
+	d := float64((arrived - a.prevArrived) - (stamp - a.prevStamp))
 	if d < 0 {
 		d = -d
 	}
 	a.jitter += (d - a.jitter) / 16
 
-	a.prevSent, a.prevArrived = sent, arrived
+	a.prevStamp, a.prevArrived = stamp, arrived
 
 	want := time.Duration(a.cfg.Multiplier * a.jitter)
 	if want < a.cfg.Min {
