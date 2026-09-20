@@ -1,0 +1,11 @@
+/jitterbench
+/jitterbench.exe
+/bin/
+
+# measurement output (regenerate with the CLI)
+/results/*.json
+/results/*.csv
+
+*.tsbuildinfo
+.DS_Store
+Thumbs.db

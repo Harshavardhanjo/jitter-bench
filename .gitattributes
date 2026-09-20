@@ -1,0 +1,5 @@
+# Normalise to LF in the repository. Authored on Windows; readers and CI are
+# mostly not on Windows, and CRLF in Go sources is noise in every diff.
+* text=auto eol=lf
+*.png binary
+*.wav binary
