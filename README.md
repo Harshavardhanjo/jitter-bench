@@ -12,8 +12,10 @@ go build ./cmd/jitterbench
 ./jitterbench sweep        # trace the curve, place the adaptive policy on it
 ```
 
-There is also a **browser UI** that runs the same simulator compiled to
-WebAssembly, so its chart cannot disagree with these tables. See [ui/](ui).
+There is also a **browser UI** at
+**[jitter-bench.harshavardhanjo.com](https://jitter-bench.harshavardhanjo.com)**,
+running the same simulator compiled to WebAssembly, so its chart cannot disagree
+with these tables. Source in [ui/](ui).
 
 ```
 cmd/jitterbench ──┐
@@ -178,6 +180,11 @@ cd ui
 npm install
 npm run dev
 ```
+
+Deployment is a local build followed by `vercel deploy --prod` from `ui/out`,
+not a git-connected build: the build shells out to the Go toolchain to produce
+the wasm and the hosting build image has no Go, so a push-triggered build fails
+on its first step.
 
 `npm run dev` rebuilds the wasm binary first, so it can never be stale against the
 Go source it came from. `npm run build` produces a static export with no server:
