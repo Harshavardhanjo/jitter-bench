@@ -172,7 +172,31 @@ export default function Page() {
         </div>
       )}
 
-      <footer className="mt-12 border-t border-neutral-200 pt-6 text-[12px] leading-relaxed text-neutral-500 dark:border-neutral-800">
+      <footer className="mt-12 space-y-3 border-t border-neutral-200 pt-6 text-[12px] leading-relaxed text-neutral-500 dark:border-neutral-800">
+        <p>
+          Built by{" "}
+          <a href="https://harshavardhanjo.com" className="text-sky-700 underline underline-offset-2 dark:text-sky-400">
+            Harshavardhan Jothikumar
+          </a>
+          . Source, methodology and full results:{" "}
+          <a href="https://github.com/Harshavardhanjo/jitter-bench" className="text-sky-700 underline underline-offset-2 dark:text-sky-400">
+            github.com/Harshavardhanjo/jitter-bench
+          </a>
+          .
+        </p>
+        <p>
+          One of three measuring the same audio path:{" "}
+          <a href="https://github.com/Harshavardhanjo/cadence-bench" className="text-sky-700 underline underline-offset-2 dark:text-sky-400">
+            cadence-bench
+          </a>{" "}
+          asks whether the send loop can hold a 20ms deadline, this one asks what the receive buffer
+          costs to keep audio continuous, and{" "}
+          <a href="https://turn-bench.harshavardhanjo.com" className="text-sky-700 underline underline-offset-2 dark:text-sky-400">
+            turn-bench
+          </a>{" "}
+          asks when the agent should stop talking. They share a statistics package so their numbers
+          are comparable.
+        </p>
         <p>
           The jitter estimate driving the adaptive policy is the one RFC 3550 §6.4.1 defines for RTCP
           receiver reports. It is structurally blind to sender clock drift: a drifting sender still
