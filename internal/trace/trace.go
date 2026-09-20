@@ -28,7 +28,7 @@ import (
 // Packet is one packet's fate in transit.
 type Packet struct {
 	// Seq is the sender's sequence number, starting at zero.
-	Seq int
+	Seq int `json:"seq"`
 
 	// Stamp is the packet's RTP timestamp: the sender's own nominal clock, which
 	// advances exactly one packetisation interval per packet by definition.
@@ -38,51 +38,51 @@ type Packet struct {
 	// This is the quantity RFC 3550's jitter estimator compares arrivals against,
 	// so the estimator sees drift as a constant offset per packet rather than as
 	// variation.
-	Stamp time.Duration
+	Stamp time.Duration `json:"stampNs"`
 
 	// Sent is when the sender actually emitted the packet, in receiver time.
 	// Sender clock drift shows up here as a gradual stretch or compression of the
 	// real send cadence, and it is the true capture instant, so end-to-end
 	// latency is measured from this rather than from Stamp.
-	Sent time.Duration
+	Sent time.Duration `json:"sentNs"`
 
 	// Arrived is when the receiver observed the packet.
-	Arrived time.Duration
+	Arrived time.Duration `json:"arrivedNs"`
 
 	// Duplicate marks a second copy of a packet the network delivered twice.
 	// Both copies carry the same Seq and independent arrival times.
-	Duplicate bool
+	Duplicate bool `json:"duplicate,omitempty"`
 }
 
 // Params defines a trace. Every field is deliberate: a trace generated from the
 // same Params on any machine is identical.
 type Params struct {
 	// Seed makes generation reproducible.
-	Seed int64
+	Seed int64 `json:"seed"`
 
 	// Count is how many packets the sender emits.
-	Count int
+	Count int `json:"count"`
 
 	// Period is the packetisation interval. 20ms is one Opus frame at the usual
 	// framing and the default throughout.
-	Period time.Duration
+	Period time.Duration `json:"periodNs"`
 
 	// BaseDelay is the fixed one-way transit time. It shifts every arrival
 	// equally, so it has no effect on jitter buffer behaviour and exists only to
 	// keep arrival times realistic.
-	BaseDelay time.Duration
+	BaseDelay time.Duration `json:"baseDelayNs"`
 
 	// JitterStdDev is the standard deviation of a normally distributed delay
 	// added to BaseDelay. Total delay is clamped at zero: a packet cannot arrive
 	// before it was sent.
-	JitterStdDev time.Duration
+	JitterStdDev time.Duration `json:"jitterStdDevNs"`
 
 	// SpikeProb is the per-packet probability of an additional SpikeDelay.
 	// Real networks produce occasional outliers far outside the normal spread —
 	// a scheduling stall, a wifi retransmission, a handover — and a purely
 	// gaussian trace understates how much buffer the tail demands.
-	SpikeProb  float64
-	SpikeDelay time.Duration
+	SpikeProb  float64       `json:"spikeProb"`
+	SpikeDelay time.Duration `json:"spikeDelayNs"`
 
 	// Loss follows a two-state Gilbert-Elliott model, because packet loss on
 	// real paths clusters rather than arriving independently, and a buffer that
@@ -93,20 +93,20 @@ type Params struct {
 	// it to the bad state, where BurstLossProb applies, and BurstExitProb
 	// returns it to good. Setting BurstEnterProb to zero reduces this to
 	// independent loss at LossProb.
-	LossProb       float64
-	BurstEnterProb float64
-	BurstLossProb  float64
-	BurstExitProb  float64
+	LossProb       float64 `json:"lossProb"`
+	BurstEnterProb float64 `json:"burstEnterProb"`
+	BurstLossProb  float64 `json:"burstLossProb"`
+	BurstExitProb  float64 `json:"burstExitProb"`
 
 	// DuplicateProb is the per-packet probability the network delivers a second
 	// copy, which arrives with its own independent delay.
-	DuplicateProb float64
+	DuplicateProb float64 `json:"duplicateProb"`
 
 	// ClockDriftPPM is the sender's clock error in parts per million, positive
 	// when the sender runs fast. Over a long call this is what separates sender
 	// and receiver without bound, and it is the condition a fixed buffer cannot
 	// survive however large it is.
-	ClockDriftPPM float64
+	ClockDriftPPM float64 `json:"clockDriftPpm"`
 }
 
 // Validate reports whether the parameters describe a generatable trace.

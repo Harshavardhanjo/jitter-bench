@@ -1,0 +1,84 @@
+
+period 20ms. median of per-run figures, range across runs in brackets.
+
+clean - wired path: 1ms jitter, no loss. The control condition.
+
+  policy         median delay      p99 delay          underruns    worst     late   resync
+  ------------ -------------- -------------- ------------------ -------- -------- --------
+  fixed-20ms           39.9ms         39.9ms  0.00% (0.00-0.00)        0        0        0
+  fixed-40ms           59.9ms         59.9ms  0.00% (0.00-0.00)        0        0        0
+  fixed-60ms           79.9ms         79.9ms  0.00% (0.00-0.00)        0        0        0
+  fixed-80ms           99.9ms         99.9ms  0.00% (0.00-0.00)        0        0        0
+  fixed-120ms         139.9ms        139.9ms  0.00% (0.00-0.00)        0        0        0
+  fixed-180ms         199.9ms        199.9ms  0.00% (0.00-0.00)        0        0        0
+  fixed-260ms         279.9ms        279.9ms  0.00% (0.00-0.00)        0        0        0
+  adaptive             39.9ms         39.9ms  0.00% (0.00-0.00)        0        0        0
+
+wifi - 8ms jitter with 2% of packets delayed a further 60ms, light clustered loss.
+
+  policy         median delay      p99 delay          underruns    worst     late   resync
+  ------------ -------------- -------------- ------------------ -------- -------- --------
+  fixed-20ms           39.6ms         39.6ms  3.57% (3.23-4.83)        3       85        0
+  fixed-40ms           59.6ms         59.6ms  2.73% (2.63-3.27)        2       61        0
+  fixed-60ms           79.6ms         79.6ms  1.93% (1.70-2.17)        2       32        0
+  fixed-80ms           99.6ms         99.6ms  0.73% (0.70-1.07)        2        0        0
+  fixed-120ms         139.6ms        139.6ms  0.73% (0.70-1.07)        2        0        0
+  fixed-180ms         199.6ms        199.6ms  0.73% (0.70-1.07)        2        0        0
+  fixed-260ms         279.6ms        279.6ms  0.73% (0.70-1.07)        2        0        0
+  adaptive             60.2ms         95.5ms  2.40% (2.40-3.17)        2       51       62
+
+congested - 20ms jitter, 5% of packets delayed a further 150ms, heavy clustered loss.
+
+  policy         median delay      p99 delay          underruns    worst     late   resync
+  ------------ -------------- -------------- ------------------ -------- -------- --------
+  fixed-20ms           36.4ms         36.4ms 28.80% (20.90-55.15)        7      656        0
+  fixed-40ms           58.9ms         58.9ms 13.63% (11.37-17.53)        5      218        0
+  fixed-60ms           78.9ms         78.9ms 11.27% (10.20-12.03)        5      139        0
+  fixed-80ms           98.9ms         98.9ms 11.00% (10.07-11.83)        5      127        0
+  fixed-120ms         138.9ms        138.9ms 10.60% (9.60-11.57)        5      125        0
+  fixed-180ms         198.9ms        198.9ms  7.03% (5.30-7.40)        5       11        0
+  fixed-260ms         278.9ms        278.9ms  6.80% (4.83-6.93)        5        0        0
+  adaptive            152.6ms        226.7ms 9.70% (8.70-10.57)        5      106      116
+
+mobile - 15ms jitter, rare 200ms stalls, clustered loss and occasional duplicates.
+
+  policy         median delay      p99 delay          underruns    worst     late   resync
+  ------------ -------------- -------------- ------------------ -------- -------- --------
+  fixed-20ms           37.3ms         37.3ms 17.97% (14.23-52.92)        9      405        0
+  fixed-40ms           59.2ms         59.2ms  8.03% (6.30-8.53)        8       97        0
+  fixed-60ms           79.2ms         79.2ms  7.30% (6.00-8.03)        8       80        0
+  fixed-80ms           99.2ms         99.2ms  7.30% (6.00-8.03)        8       80        0
+  fixed-120ms         139.2ms        139.2ms  7.30% (6.00-8.03)        8       80        0
+  fixed-180ms         199.2ms        199.2ms  7.17% (5.80-7.67)        8       75        0
+  fixed-260ms         279.2ms        279.2ms  4.57% (3.47-5.20)        8        0        0
+  adaptive            131.7ms        247.7ms  7.23% (6.70-8.00)        9       82      105
+
+drift-fast - clean path, but the sender's clock runs 2000ppm fast: the buffer fills and latency grows.
+
+  policy         median delay      p99 delay          underruns    worst     late   resync
+  ------------ -------------- -------------- ------------------ -------- -------- --------
+  fixed-20ms           99.8ms        158.5ms  0.00% (0.00-0.00)        0        0        0
+  fixed-40ms          119.8ms        178.5ms  0.00% (0.00-0.00)        0        0        0
+  fixed-60ms          139.8ms        198.5ms  0.00% (0.00-0.00)        0        0        0
+  fixed-80ms          159.8ms        218.5ms  0.00% (0.00-0.00)        0        0        0
+  fixed-120ms         199.8ms        258.5ms  0.00% (0.00-0.00)        0        0        0
+  fixed-180ms         259.8ms        318.5ms  0.00% (0.00-0.00)        0        0        0
+  fixed-260ms         339.8ms        398.5ms  0.00% (0.00-0.00)        0        0        0
+  adaptive             99.8ms        158.5ms  0.00% (0.00-0.00)        0        0        0
+
+drift-slow - clean path, but the sender's clock runs 2000ppm slow: the buffer drains and never recovers.
+
+  policy         median delay      p99 delay          underruns    worst     late   resync
+  ------------ -------------- -------------- ------------------ -------- -------- --------
+  fixed-20ms           29.8ms         39.7ms 83.33% (81.97-83.87)     2448     2495        0
+  fixed-40ms           39.9ms         59.5ms 66.63% (65.53-67.13)     1951     1995        0
+  fixed-60ms           50.0ms         79.4ms 50.13% (48.93-50.63)     1472     1500        0
+  fixed-80ms           60.0ms         99.1ms 33.40% (32.17-33.83)      954      999        0
+  fixed-120ms          80.1ms        138.8ms  0.50% (0.03-0.63)        4       15        0
+  fixed-180ms         139.8ms        198.7ms  0.00% (0.00-0.00)        0        0        0
+  fixed-260ms         219.8ms        278.7ms  0.00% (0.00-0.00)        0        0        0
+  adaptive             29.8ms         39.7ms 83.33% (81.97-83.87)     2448     2495        0
+
+underruns = frame slots with nothing to play. worst = longest consecutive run.
+late = packets that arrived after their slot, discarded by the buffer's own delay choice.
+resync = playout schedule shifts, each one audible in a real receiver.

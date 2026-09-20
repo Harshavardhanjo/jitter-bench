@@ -19,10 +19,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Harshavardhanjo/cadence-bench/stats"
-
-	"github.com/Harshavardhanjo/jitter-bench/internal/buffer"
-	"github.com/Harshavardhanjo/jitter-bench/internal/sim"
+	"github.com/Harshavardhanjo/jitter-bench/internal/report"
 	"github.com/Harshavardhanjo/jitter-bench/internal/trace"
 )
 
@@ -97,113 +94,6 @@ func presetsCmd(args []string) error {
 	return nil
 }
 
-// spread is the range of one figure across repetitions, reported as the observed
-// median with min and max rather than a standard error. Underrun rates are not
-// normally distributed — they are bounded at zero and driven by rare bursts — so
-// an interval computed as though they were would understate the tail.
-type spread struct {
-	Median float64 `json:"median"`
-	Min    float64 `json:"min"`
-	Max    float64 `json:"max"`
-}
-
-func spreadOf(v []float64) spread {
-	if len(v) == 0 {
-		return spread{}
-	}
-	s := stats.Summarize(v)
-	return spread{Median: s.P50, Min: s.Min, Max: s.Max}
-}
-
-// point is one policy measured against one condition, across repetitions.
-type point struct {
-	Condition    string       `json:"condition"`
-	Policy       string       `json:"policy"`
-	Reps         int          `json:"reps"`
-	Params       trace.Params `json:"trace_params"`
-	MedianDelay  spread       `json:"median_playout_delay_ns"`
-	P99Delay     spread       `json:"p99_playout_delay_ns"`
-	UnderrunRate spread       `json:"underrun_rate"`
-	LongestRun   spread       `json:"longest_underrun_run"`
-	LateDiscards spread       `json:"late_discards"`
-	Resyncs      spread       `json:"resyncs"`
-}
-
-type report struct {
-	Period time.Duration `json:"period_ns"`
-	Points []point       `json:"points"`
-}
-
-func measure(name string, base trace.Params, reps int, newPolicy func() (buffer.Policy, error)) (point, error) {
-	var (
-		med, p99, under, longest, late, resync []float64
-		pol                                    buffer.Policy
-	)
-
-	for i := 0; i < reps; i++ {
-		p := base
-		// Each repetition is a different network draw from the same distribution,
-		// not a rerun of the same one. Repeating an identical trace would only
-		// measure that the simulation is deterministic, which a test already does.
-		p.Seed = base.Seed + int64(i)
-
-		tr, err := trace.Generate(p)
-		if err != nil {
-			return point{}, err
-		}
-		pol, err = newPolicy()
-		if err != nil {
-			return point{}, err
-		}
-		res, err := sim.Run(tr, pol)
-		if err != nil {
-			return point{}, err
-		}
-
-		med = append(med, res.PlayoutDelay.P50)
-		p99 = append(p99, res.PlayoutDelay.P99)
-		under = append(under, res.UnderrunRate)
-		longest = append(longest, float64(res.LongestUnderrunRun))
-		late = append(late, float64(res.LateDiscards))
-		resync = append(resync, float64(res.Resyncs))
-	}
-
-	return point{
-		Condition:    name,
-		Policy:       pol.Name(),
-		Reps:         reps,
-		Params:       base,
-		MedianDelay:  spreadOf(med),
-		P99Delay:     spreadOf(p99),
-		UnderrunRate: spreadOf(under),
-		LongestRun:   spreadOf(longest),
-		LateDiscards: spreadOf(late),
-		Resyncs:      spreadOf(resync),
-	}, nil
-}
-
-func parseDelays(spec string) ([]time.Duration, error) {
-	var out []time.Duration
-	for _, f := range strings.Split(spec, ",") {
-		f = strings.TrimSpace(f)
-		if f == "" {
-			continue
-		}
-		d, err := time.ParseDuration(f)
-		if err != nil {
-			return nil, fmt.Errorf("bad delay %q: %w", f, err)
-		}
-		if d < 0 {
-			return nil, fmt.Errorf("delay %v is negative", d)
-		}
-		out = append(out, d)
-	}
-	if len(out) == 0 {
-		return nil, fmt.Errorf("no fixed delays given")
-	}
-	return out, nil
-}
-
 func sweepCmd(args []string) error {
 	fs := flag.NewFlagSet("sweep", flag.ExitOnError)
 	conditions := fs.String("conditions", "all", "comma-separated preset names, or all")
@@ -217,11 +107,7 @@ func sweepCmd(args []string) error {
 		return err
 	}
 
-	if *reps <= 0 {
-		return fmt.Errorf("reps must be positive, got %d", *reps)
-	}
-
-	delays, err := parseDelays(*delaySpec)
+	delays, err := report.ParseDelays(*delaySpec)
 	if err != nil {
 		return err
 	}
@@ -245,29 +131,15 @@ func sweepCmd(args []string) error {
 		}
 	}
 
-	rep := &report{Period: *period}
-
+	rep := &report.Report{PeriodNs: period.Nanoseconds()}
 	for _, pr := range chosen {
 		fmt.Fprintf(os.Stderr, "measuring %s (%d reps x %d packets)\n", pr.Name, *reps, *count)
 
-		for _, d := range delays {
-			delay := d
-			pt, err := measure(pr.Name, pr.Params, *reps, func() (buffer.Policy, error) {
-				return buffer.NewFixed(delay)
-			})
-			if err != nil {
-				return err
-			}
-			rep.Points = append(rep.Points, pt)
-		}
-
-		pt, err := measure(pr.Name, pr.Params, *reps, func() (buffer.Policy, error) {
-			return buffer.NewAdaptive(buffer.DefaultAdaptiveConfig())
-		})
+		pts, err := report.Sweep(pr, delays, *reps)
 		if err != nil {
 			return err
 		}
-		rep.Points = append(rep.Points, pt)
+		rep.Points = append(rep.Points, pts...)
 	}
 
 	printTable(rep, chosen)
@@ -289,8 +161,9 @@ func sweepCmd(args []string) error {
 	return nil
 }
 
-func printTable(rep *report, presets []trace.Preset) {
-	fmt.Printf("\nperiod %v. median of per-run figures, range across runs in brackets.\n", rep.Period)
+func printTable(rep *report.Report, presets []trace.Preset) {
+	fmt.Printf("\nperiod %v. median of per-run figures, range across runs in brackets.\n",
+		time.Duration(rep.PeriodNs))
 
 	for _, pr := range presets {
 		fmt.Printf("\n%s - %s\n\n", pr.Name, pr.Description)
