@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/Harshavardhanjo/jitter-bench/internal/report"
-	"github.com/Harshavardhanjo/jitter-bench/internal/trace"
+	"github.com/Harshavardhanjo/jitter-bench/trace"
 )
 
 // request is what the UI sends. Durations cross the boundary as milliseconds

@@ -20,8 +20,8 @@ import (
 
 	"github.com/Harshavardhanjo/cadence-bench/stats"
 
-	"github.com/Harshavardhanjo/jitter-bench/internal/buffer"
-	"github.com/Harshavardhanjo/jitter-bench/internal/trace"
+	"github.com/Harshavardhanjo/jitter-bench/buffer"
+	"github.com/Harshavardhanjo/jitter-bench/trace"
 )
 
 // Result is what one policy did with one trace.

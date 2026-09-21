@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/Harshavardhanjo/jitter-bench/internal/report"
-	"github.com/Harshavardhanjo/jitter-bench/internal/trace"
+	"github.com/Harshavardhanjo/jitter-bench/trace"
 )
 
 func main() {

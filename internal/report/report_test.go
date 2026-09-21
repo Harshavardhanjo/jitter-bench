@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Harshavardhanjo/jitter-bench/internal/buffer"
-	"github.com/Harshavardhanjo/jitter-bench/internal/trace"
+	"github.com/Harshavardhanjo/jitter-bench/buffer"
+	"github.com/Harshavardhanjo/jitter-bench/trace"
 )
 
 func params() trace.Params {

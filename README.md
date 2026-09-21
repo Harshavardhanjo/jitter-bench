@@ -20,8 +20,8 @@ with these tables. Source in [ui/](ui).
 ```
 cmd/jitterbench ──┐
 ui (wasm) ────────┴── internal/report   sweep + aggregate across repetitions
-                          ├── internal/trace    deterministic network traces
-                          ├── internal/buffer   fixed and adaptive delay policies
+                          ├── trace             deterministic network traces
+                          ├── buffer            fixed and adaptive delay policies
                           ├── internal/sim      playout, and what the listener lost
                           └── cadence-bench/stats   shared percentile definitions
 ```
@@ -30,6 +30,13 @@ This is the receive side of the audio path. Its sibling
 [cadence-bench](https://github.com/Harshavardhanjo/cadence-bench) measures the
 send side — whether a loop can hold a 20ms deadline at all — and the two share a
 statistics package so their percentiles mean the same thing.
+
+`trace` and `buffer` are importable packages rather than internal ones, so other
+tools can generate the same network conditions and run the same playout policies:
+
+```
+go get github.com/Harshavardhanjo/jitter-bench@v0.1.0
+```
 
 ## What it measures
 

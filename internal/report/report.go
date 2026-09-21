@@ -14,9 +14,9 @@ import (
 
 	"github.com/Harshavardhanjo/cadence-bench/stats"
 
-	"github.com/Harshavardhanjo/jitter-bench/internal/buffer"
+	"github.com/Harshavardhanjo/jitter-bench/buffer"
 	"github.com/Harshavardhanjo/jitter-bench/internal/sim"
-	"github.com/Harshavardhanjo/jitter-bench/internal/trace"
+	"github.com/Harshavardhanjo/jitter-bench/trace"
 )
 
 // Spread is the range of one figure across repetitions, reported as the observed
